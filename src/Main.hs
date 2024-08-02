@@ -1,5 +1,8 @@
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
+{-# LANGUAGE DataKinds #-}
 module Main (main) where
+
+-- lista 2
 
 -- 4
 -- palindromo :: (Eq a) => [a] -> Bool
@@ -159,8 +162,50 @@ zipWithe _ ([], _) = []
 zipWithe _ (_, []) = []
 zipWithe f (x:xs, y:ys) = f x y : zipWithe f (xs, ys)
 
+-- lista 3
+
+-- 1
+data Nat = Zero | Succ Nat
+  deriving Show
+add :: Nat -> Nat -> Nat
+add Zero n = n
+add (Succ m) n = Succ (add m n)
+
+mult :: Nat -> Nat -> Nat
+mult Zero _ = Zero
+mult (Succ m) n = add n (mult m n)
+
+-- 2
+data Tree a = Leaf a | Node (Tree a) a (Tree a)
+  deriving (Show)
+
+occurs :: Ord a => a -> Tree a -> Bool
+occurs n (Leaf m) = n == m
+occurs n (Node l m r) = case compare n m of
+                    EQ -> True
+                    LT -> occurs n l
+                    GT -> occurs n r
+
+-- 3
+flatten :: Tree a -> [a]
+flatten (Leaf m) = [m]
+flatten (Node l m r) = flatten l ++ [m] ++ flatten r
+
+
+-- 4
+data BTree a = BLeaf a | BNode (BTree a) (BTree a)
+
+leafNum :: BTree a -> Int
+leafNum (BLeaf _) = 1
+leafNum (BNode l r) = leafNum l + leafNum r
+
+balanced :: BTree a -> Bool
+balanced (BLeaf _) = True
+balanced (BNode l r) = abs (leafNum l - leafNum r) <= 1 && balanced l && balanced r
+
 main :: IO ()
 main = do
-  let x = zipWithe (\x -> \y -> (x, y, x+y)) ([1, 2, 3], [4, 5, 6])
+  let tree = BNode (BNode (BLeaf 1) (BLeaf 1)) (BNode (BLeaf 1) (BLeaf 1))
+  let x = balanced tree
 
   putStrLn (show x)
