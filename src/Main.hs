@@ -30,10 +30,10 @@ module Main (main) where
 -- | otherwise = True
 
 -- 7
-e' x y = if x then (if y then True else False) else False
+e' x y = if x && y then True else False
 
 -- 8
-ee x y = if x then y else False
+ee x y = x && y
 
 -- 9
 c :: a -> b -> a
@@ -51,7 +51,7 @@ penultimo xs = reverse xs !! 1
 
 --12
 maximoLocal :: [Int] -> [Int]
-maximoLocal (x:y:z:xs) = if (y > x && y > z) then (y : maximoLocal (z:xs)) else (maximoLocal (y:z:xs))
+maximoLocal (x:y:z:xs) = if y > x && y > z then y : maximoLocal (z:xs) else maximoLocal (y:z:xs)
 maximoLocal _ = []
 
 -- 13
@@ -59,7 +59,7 @@ fatores :: Int -> [Int]
 fatores n = [x | x <- [1..n-1], n `mod` x == 0]
 
 perfeitos :: Int -> [Int]
-perfeitos n = [x | x <- [1..n], (sum (fatores x)) == x]
+perfeitos n = [x | x <- [1..n], sum (fatores x) == x]
 
 -- 14
 produtoEscalar :: Num a => [a] -> [a] -> a
@@ -69,7 +69,7 @@ produtoEscalar xs ys = sum [x * y | (x, y) <- zip xs ys]
 palindromo :: [Int] -> Bool
 palindromo [] = True
 palindromo [_] = True
-palindromo xs = (head xs == last xs) && palindromo (tail (init xs))
+palindromo xs = head xs == last xs && palindromo (tail (init xs))
 
 -- 16
 ordenaListas :: (Num a, Ord a) => [[a]] -> [[a]]
@@ -120,8 +120,7 @@ euclid x y | x == y = x
 
 -- 22
 concat' :: [[a]] -> [a]
-concat' [] = []
-concat' (xs:xss) = [x | x <- xs] ++ concat' xss
+concat' xss = foldr (\ xs -> (++) ([x | x <- xs])) [] xss
 
 -- 23
 intersperse' :: a -> [a] -> [a]
@@ -148,7 +147,7 @@ digitsName (x:xs) | x == 1 = "um" : digitsName xs
                   | x == 0 = "zero" : digitsName xs
                   | otherwise = []
 
-wordNumber :: Char -> Int -> [Char]
+wordNumber :: Char -> Int -> String
 wordNumber separator n = concat' $ intersperse' [separator] (digitsName $ digitos n)
 
 -- Quiz manhã
@@ -194,7 +193,7 @@ flatten (Node l m r) = flatten l ++ [m] ++ flatten r
 
 -- 4
 data BTree a = BLeaf a | BNode (BTree a) (BTree a)
-
+  deriving Show
 leafNum :: BTree a -> Int
 leafNum (BLeaf _) = 1
 leafNum (BNode l r) = leafNum l + leafNum r
@@ -203,9 +202,104 @@ balanced :: BTree a -> Bool
 balanced (BLeaf _) = True
 balanced (BNode l r) = abs (leafNum l - leafNum r) <= 1 && balanced l && balanced r
 
+-- 5
+divide :: [a] -> ([a], [a])
+divide xs = splitAt middle xs
+        where
+          middle = length xs `div` 2
+
+balance :: [a] -> BTree a
+balance [x] = BLeaf x
+balance xs = BNode (balance l) (balance r)
+          where
+            (l, r) = divide xs
+
+-- 6
+data Expr = Val Int | Add Expr Expr
+
+folde :: (Int -> a) -> (a -> a -> a) -> Expr -> a
+folde f _ (Val x) = f x
+folde f g (Add a b) = g (folde f g a) (folde f g b)
+
+-- 7
+eval :: Expr -> Int
+eval = folde (\x -> x) (+)
+
+size :: Expr -> Int
+size = folde (\_ -> 1) (+)
+
+-- 8
+data List a = Nil | a :- List a
+infixr 5 :-
+
+data Sem = Green | Yellow | Red
+  deriving (Eq, Show)
+
+count :: Sem -> List Sem -> Int
+count _ Nil = 0
+count x (y :- ys) | x == y = 1 + count x ys
+                  | otherwise = count x ys
+
+next :: Sem -> Sem
+next Green = Yellow
+next Yellow = Red
+next Red = Green
+
+-- 9
+updateSems :: List Sem -> List Sem
+updateSems Nil = Nil
+updateSems (x:-xs) = next x :- updateSems xs
+
+timeList :: List Sem -> Int
+timeList Nil = 0
+timeList (x:-xs) = case x of
+            Red -> 2 + timeList (updateSems xs)
+            Green -> 1 + timeList (updateSems xs)
+            Yellow -> 1 + timeList (updateSems xs)
+
+-- 10
+redl :: (b -> a -> b) -> b -> List a -> b
+redl _ b Nil = b
+redl f b (l:-ls) = redl f (f b l) ls
+
+-- 11
+-- timeList2 :: List Sem -> Int
+-- timeList2 Nil = 0
+-- timeList2 xs = fst $ redl calc (0, id) xs
+--           where
+--               calc (b, f) sem
+--                 | f sem == Red = (b + 2, (next . f))
+--                 | otherwise = (b + 1, (next . f))
+
+-- timeListRedl :: List Sem -> Int
+-- timeListRedl xs = fst $ redl foldFun (0, id) xs
+--   where
+--     foldFun (n, f) c
+--       | f c == Red = (n + 2, next . next . f)
+--       | otherwise = (n + 1, next . f)
+
+-- quiz manhã
+
+data Nota = Do | Re | Mi | Fa | Sol | La | Si
+  deriving (Show, Eq)
+
+data ModoGrego = Jônio | Dórico | Frígio | Lídio | Mixolídio | Eólio | Lócrio
+  deriving (Show, Eq)
+
+modoParaNotas :: ModoGrego -> [Nota]
+modoParaNotas Jônio     = [Do, Re, Mi, Fa, Sol, La, Si]
+modoParaNotas Dórico    = [Re, Mi, Fa, Sol, La, Si, Do]
+modoParaNotas Frígio    = [Mi, Fa, Sol, La, Si, Do, Re]
+modoParaNotas Lídio     = [Fa, Sol, La, Si, Do, Re, Mi]
+modoParaNotas Mixolídio = [Sol, La, Si, Do, Re, Mi, Fa]
+modoParaNotas Eólio     = [La, Si, Do, Re, Mi, Fa, Sol]
+modoParaNotas Lócrio    = [Si, Do, Re, Mi, Fa, Sol, La]
+
+gerarModo :: Int -> ModoGrego -> [Nota]
+gerarModo n m | n <= 0 = []
+              | otherwise = take n (modoParaNotas m) ++ gerarModo (n - 7) m
+
 main :: IO ()
 main = do
-  let tree = BNode (BNode (BLeaf 1) (BLeaf 1)) (BNode (BLeaf 1) (BLeaf 1))
-  let x = balanced tree
-
-  putStrLn (show x)
+  let x = gerarModo 13 Lídio
+  print x
