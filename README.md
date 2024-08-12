@@ -1,1 +1,1 @@
-# lista-dois
+# haskell-exercises
