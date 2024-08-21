@@ -2,6 +2,9 @@
 {-# LANGUAGE DataKinds #-}
 module Main (main) where
 import Data.List (intercalate, sort, nub, delete)
+import Data.Functor.Identity (Identity(Identity))
+import Text.Read (readMaybe)
+import Data.Monoid (Sum(Sum, getSum))
 
 -- lista 2
 
@@ -335,6 +338,78 @@ insert element (Set xs) = fromList (element:xs)
 
 delete' :: Ord a => a -> Set a -> Set a
 delete' element (Set xs) = fromList (delete element xs)
+
+--3
+-- data Set a = Set [a]
+--   deriving Eq
+
+instance Ord a => Semigroup (Set a) where
+  (Set x) <> (Set y) = fromList (x<>y)
+
+instance Ord a => Monoid (Set a) where
+  mempty = Set []
+
+--4
+data Dieta = Vegano | Vegetariano | Tradicional
+data Lanche = Lanche (Set String) Int Dieta
+
+instance Semigroup Dieta where
+  Vegano <> Vegetariano      = Vegetariano
+  Vegetariano <> Vegano      = Vegetariano
+  Tradicional <> _           = Tradicional
+  _ <> Tradicional           = Tradicional
+  Vegano <> Vegano           = Vegano
+  Vegetariano <> Vegetariano = Vegetariano
+
+instance Monoid Dieta where
+  mempty = Vegano
+
+--5
+instance Semigroup Lanche where
+  (Lanche ingrX precoX dietaX) <> (Lanche ingrY precoY dietaY) = Lanche (ingrX <> ingrY) (precoX + precoY) (dietaX <> dietaY)
+
+instance Monoid Lanche where
+  mempty = Lanche mempty 0 mempty
+
+-- 6
+data Treee a = Leafe a | Nodee (Treee a) a (Treee a)
+  deriving Show
+
+instance Functor Treee where
+  fmap f (Leafe a) = Leafe (f a)
+  fmap f (Nodee left x right) = Nodee (fmap f left) (f x) (fmap f right)
+
+-- 7
+arvorePossui :: Eq a => a -> Treee a -> Bool
+arvorePossui x (Leafe y) = x == y
+arvorePossui x (Nodee l y r) = x == y || arvorePossui x l || arvorePossui x r
+
+-- 8
+
+contaLetras :: Treee String -> Treee Int
+contaLetras = fmap length
+
+-- 9
+
+instance Foldable Treee where
+  foldMap t (Leafe x) = t x
+  foldMap t (Nodee l x r) = foldMap t l <> t x <> foldMap t r
+
+-- 10
+convertString2Int :: String -> Maybe Int
+convertString2Int = readMaybe
+
+-- 11
+nothingToZero :: Maybe Int -> Int
+nothingToZero Nothing  =  0
+nothingToZero (Just x) = x
+
+-- 12
+frutasDaArvore :: Treee String -> Int
+frutasDaArvore t = getSum $ foldMap (Sum . nothingToZero . convertString2Int) t
+
+-- 13
+
 
 main :: IO ()
 main = do
