@@ -1,6 +1,7 @@
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 {-# LANGUAGE DataKinds #-}
 module Main (main) where
+import Data.List (intercalate, sort, nub, delete)
 
 -- lista 2
 
@@ -299,7 +300,43 @@ gerarModo :: Int -> ModoGrego -> [Nota]
 gerarModo n m | n <= 0 = []
               | otherwise = take n (modoParaNotas m) ++ gerarModo (n - 7) m
 
+-- lista 4
+
+-- lista 5
+
+-- 1
+
+data Resultado = Pontuacao Int | Cola
+  deriving Show
+
+instance Semigroup Resultado where
+  Pontuacao x <> Pontuacao y = Pontuacao (x + y)
+  _ <> _                     = Cola
+
+instance Monoid Resultado where
+  mempty = Pontuacao 0
+
+-- 2
+data Set a = Set [a]
+  deriving Eq
+
+instance Show a => Show (Set a) where
+  show (Set xs) = "{" <> intercalate "," (fmap show xs) <> "}"
+
+fromList :: Ord a => [a] -> Set a
+fromList = Set . sort . nub
+
+member :: Ord a => a -> Set a -> Bool
+member element (Set xs) = elem element xs
+
+
+insert :: Ord a => a -> Set a -> Set a
+insert element (Set xs) = fromList (element:xs)
+
+delete' :: Ord a => a -> Set a -> Set a
+delete' element (Set xs) = fromList (delete element xs)
+
 main :: IO ()
 main = do
-  let x = gerarModo 13 Lídio
+  let x = Set [1, 2, 3, 4, 5, 6]
   print x
