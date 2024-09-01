@@ -405,20 +405,20 @@ module Main (main) where
 -- frutasDaArvore t = getSum $ foldMap (Sum . nothingToZero . convertString2Int) t
 
 -- 13
-newtype ZipList a = Z [a]
-  deriving Show
+-- newtype ZipList a = Z [a]
+--   deriving Show
 
-instance Functor ZipList where
-fmap g (Z xs) = Z (fmapDefault g xs)
+-- instance Functor ZipList where
+-- -- fmap g (Z xs) = Z (fmapDefault g xs)
 
-instance Applicative ZipList where
--- pure :: a -> ZipList a
-pure x = Z (repeat x)
+-- instance Applicative ZipList where
+-- -- pure :: a -> ZipList a
+-- pure x = Z (repeat x)
 
--- 15
-newtype Identity' a = Identity' a
-  deriving Show
-data Pair a = Pair a a
+-- -- 15
+-- newtype Identity' a = Identity' a
+--   deriving Show
+-- data Pair a = Pair a a
 
 -- instance Functor Identity' where
 --   fmap g (Identity' a) = Identity' (g a)
@@ -427,6 +427,79 @@ data Pair a = Pair a a
 --   pure = Identity'
 --   Identity' g <*> x  = fmap g x
 
+-- instance Functor Pair where
+--   fmap g (Pair x y) = Pair (g x) (g y)
+
+-- instance Applicative Pair where
+--   pure x = Pair x x
+--   (Pair g h) <*> (Pair x y) = Pair (g x) (h y)
+
+-- -- 16
+
+-- data RLE a = Repeat Int a (RLE a) | End
+--   deriving (Eq, Show)
+
+-- rleCons :: Eq a => a -> RLE a -> RLE a
+-- rleCons x End = Repeat 1 x End
+-- rleConse x (Repeat i y seq) = if (x == y) then Repeat (i+1) x seq else Repeat 1 x (Repeat i y seq)
+
+-- 17
+
+-- instance Foldable RLE where
+--   foldMap _ End = mempty
+--   foldMap g (Repeat i x xs) = foldMap g (replicate i x) <> foldMap g xs
+
+-- encode :: Eq a => [a] -> RLE a
+-- encode
+
+-- lista 6
+
+-- 1
+
+newtype Caixa a = Caixa a deriving (Eq, Show)
+
+instance Functor Caixa where
+  fmap g (Caixa x) = Caixa (g x)
+
+instance Applicative Caixa where
+  pure = Caixa
+  Caixa g <*> Caixa x = Caixa (g x)
+
+instance Monad Caixa where
+  (Caixa x) >>= f = f x
+
+-- 2
+data Expr a = Var a | Val Int | Add (Expr a) (Expr a) deriving Show
+
+instance Functor Expr where
+  fmap g (Var a) = Var (g a)
+  fmap _ (Val x) = Val x
+  fmap g (Add x y) = Add (fmap g x) (fmap g y)
+
+instance Applicative Expr where
+  pure = Var
+  Var g <*> expr = fmap g expr
+
+instance Monad Expr where
+  Var x >>= f = f x
+  Val x >>= _ = Val x
+  Add x y >>= f = Add (x >>= f) (y >>= f)
+
+-- 3
+newtype Identity a = Identity a
+
+data Pair a = Pair a a
+
+instance Functor Identity where
+  fmap g (Identity a) = Identity (g a)
+
+instance Applicative Identity where
+  pure = Identity
+  Identity g <*> x  = fmap g x
+
+instance Monad Identity where
+  Identity x >>= f = f x
+
 instance Functor Pair where
   fmap g (Pair x y) = Pair (g x) (g y)
 
@@ -434,24 +507,38 @@ instance Applicative Pair where
   pure x = Pair x x
   (Pair g h) <*> (Pair x y) = Pair (g x) (h y)
 
--- 16
+instance Monad Pair where
+  (>>=) :: Pair a -> (a -> Pair b) -> Pair b
+  Pair x _ >>= f = f x
 
-data RLE a = Repeat Int a (RLE a) | End
-  deriving (Eq, Show)
+-- 4
+data Fantasma a = Fantasma
 
-rleCons :: Eq a => a -> RLE a -> RLE a
-rleCons x End = Repeat 1 x End
-rleConse x (Repeat i y seq) = if (x == y) then Repeat (i+1) x seq else Repeat 1 x (Repeat i y seq)
+instance Functor Fantasma where
+  fmap _ Fantasma = Fantasma
 
--- 17
+instance Applicative Fantasma where
+  pure _ = Fantasma
+  Fantasma <*> Fantasma = Fantasma
 
-instance Foldable RLE where
-  foldMap _ End = mempty
-  foldMap g (Repeat i x xs) = foldMap g (replicate i x) <> foldMap g xs
+instance Monad Fantasma where
+  Fantasma >>= _ = Fantasma
+
+-- 5
+data Duo a = Duo (Bool -> a)
+
+instance Functor Duo where
+  fmap g (Duo f) = Duo (g . f)
+
+instance Applicative Duo where
+  pure x = Duo (const x)
+  Duo f <*> Duo g = Duo (\b -> f b (g b))
+
+instance Monad Duo where
+  -- (>>=) :: Duo a -> (a -> Duo b) -> Duo b
+  a >>= f = Duo $ \ b -> runDuo (f $ runDuo a b) b
 
 main :: IO ()
 main = do
-  let x = Identity' "1"
-      y = Identity' "2"
-
+  let x = ""
   print x
