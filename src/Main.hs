@@ -614,11 +614,25 @@ azul x = x >>= \x -> x
 
 -- 10
 amarelo :: Monad m => (a -> b) -> m a -> m b
-amarelo f mx = mx >>= \x -> pure (f x)
+amarelo f mx = fmap f mx
 
 -- 11
--- vermelho :: Monad m => (a -> b -> c) -> m a -> m b -> m c
+vermelho :: Monad m => (a -> b -> c) -> m a -> m b -> m c
+vermelho f mx my = fmap f mx <*> my
 
+-- 12
+verde :: Monad m => m a -> m (a -> b) -> m b
+verde mx mg = mg <*> mx
+
+-- 13
+laranja :: Monad m => [m a] -> m [a]
+laranja [] = pure []
+laranja (x:xs) = k
+  where k = x >>= \n -> laranja xs >>= \l -> return $ n : l
+
+-- 14
+roxo :: Monad m => [a] -> (a -> m b) -> m [b]
+roxo xs g = laranja $ amarelo g xs
 
 main :: IO ()
 main = do
