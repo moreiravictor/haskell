@@ -2,6 +2,8 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE InstanceSigs #-}
 module Main (main) where
+import Data.Maybe (isNothing)
+import Data.Bits (Bits(xor))
 -- -- lista 2
 
 -- -- 4
@@ -527,6 +529,9 @@ instance Monad Fantasma where
 -- 5
 data Duo a = Duo (Bool -> a)
 
+runDuo :: Duo a -> Bool -> a
+runDuo (Duo f) = f
+
 instance Functor Duo where
   fmap g (Duo f) = Duo (g . f)
 
@@ -537,6 +542,83 @@ instance Applicative Duo where
 instance Monad Duo where
   -- (>>=) :: Duo a -> (a -> Duo b) -> Duo b
   a >>= f = Duo $ \ b -> runDuo (f $ runDuo a b) b
+
+-- 6
+data Request a = Loading | Error | Success a
+
+instance Functor Request where
+  fmap _ Loading = Loading
+  fmap _ Error = Error
+  fmap g (Success x) = Success (g x)
+
+instance Applicative Request where
+  pure = Success
+  _ <*> Error = Error
+  Error <*> _ = Error
+  _ <*> Loading = Loading
+  Loading <*> _ = Loading
+  (Success g) <*> (Success x) = Success (g x)
+
+instance Monad Request where
+  return = pure
+  Error >>= _ = Error
+  Loading >>= _ = Loading
+  (Success x) >>= f = f x
+
+-- 7
+data Bolso a = Um a | Dois a a | Tres a a a
+
+instance Functor Bolso where
+  fmap g (Um x) = Um (g x)
+  fmap g (Dois x y) = Dois (g x) (g y)
+  fmap g (Tres x y z) = Tres (g x) (g y) (g z)
+
+instance Eq a => Eq (Bolso a) where
+  Um x == Um y = x == y
+  Dois _ x == y = Um x == y
+  Tres _ _ x == y = Um x == y
+  x == y = x == y
+
+instance Applicative Bolso where
+  pure = Um
+  Um g <*> x = fmap g x
+  Dois _ g <*> x = fmap g x
+  Tres _ _ g <*> x = fmap g x
+
+instance Monad Bolso where
+  return = pure
+  Um x >>= f = f x
+  Dois _ x >>= f = f x
+  Tres _ _ x >>= f = f x
+
+-- 8
+type Nome = String
+type Peso = Double
+type Altura = Double
+type IMC = Double
+
+imc :: [(Maybe Nome, Maybe Peso, Maybe Altura)] -> [Maybe IMC]
+imc = fmap calc
+  where calc (_, Nothing, _) = Nothing
+        calc (_, _, Nothing) = Nothing
+        calc (_, Just peso, Just altura) = Just (peso / (altura ** 2))
+-- imc = fmap calc
+--   where calc (_, maybePeso, maybeAltura) =  do
+--           p <- maybePeso
+--           a <- maybeAltura
+--           return $ (p/(a**2))
+
+-- 9
+azul :: Monad m => m (m a) -> m a
+azul x = x >>= \x -> x
+
+-- 10
+amarelo :: Monad m => (a -> b) -> m a -> m b
+amarelo f mx = mx >>= \x -> pure (f x)
+
+-- 11
+-- vermelho :: Monad m => (a -> b -> c) -> m a -> m b -> m c
+
 
 main :: IO ()
 main = do
