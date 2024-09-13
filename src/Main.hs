@@ -2,8 +2,10 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE InstanceSigs #-}
 module Main (main) where
-import Data.Maybe (isNothing)
+import Data.Maybe (isNothing, isJust)
 import Data.Bits (Bits(xor))
+import Control.Monad.State
+
 -- -- lista 2
 
 -- -- 4
@@ -634,7 +636,112 @@ laranja (x:xs) = k
 roxo :: Monad m => [a] -> (a -> m b) -> m [b]
 roxo xs g = laranja $ amarelo g xs
 
+-- 16
+
+newtype MudaLista a = MudaLista { runMudaLista :: [Int] -> ([Int], a)}
+--a
+empilha :: Int -> MudaLista ()
+empilha x = MudaLista $ \xs -> (x:xs, ())
+
+-- b
+
+instance Functor MudaLista where
+  fmap :: (a -> b) -> MudaLista a -> MudaLista b
+  fmap f (MudaLista g) = MudaLista $ \xs -> fmap f (g xs)
+
+--c
+-- instance Applicative MudaLista where
+--   pure x = MudaLista $ \xs -> (xs, x)
+--   (MudaLista x) <*> (MudaLista y) = MudaLista $
+
+--d
+-- desempilhaVarios :: Int -> MudaLista [Int]
+-- desempilhaVarios x xs = MudaLista $ \
+
+-- lista 7
+data Produto = Produto
+  { nome :: String
+  , preco :: Int
+  } deriving (Show, Eq)
+
+data Loja = Loja
+  { caixa :: Int
+  , estoque :: [Produto]
+  } deriving (Show, Eq)
+
+comprar :: String -> State Loja (Maybe Produto)
+comprar nomeProduto = state realizaCompra
+  where
+  realizaCompra :: Loja -> (Maybe Produto, Loja)
+  realizaCompra lj =
+    case findAndRemoveProduto $ estoque lj of
+    Nothing -> (Nothing, lj)
+    Just (p, novoEstoque) -> (Just p, Loja novoCaixa novoEstoque)
+      where novoCaixa = caixa lj + preco p
+  findAndRemoveProduto :: [Produto] -> Maybe (Produto, [Produto])
+  findAndRemoveProduto ps = go ps []
+    where
+    go [] _ = Nothing
+    go (x:xs) acc
+      | nome x == nomeProduto = Just (x, reverse acc ++ xs)
+      | otherwise = go xs (x : acc)
+
+vender :: String -> Int -> State Loja Int
+vender nomeProduto valor = state realizaVenda
+  where
+  realizaVenda :: Loja -> (Int, Loja)
+  realizaVenda lj
+    | valor <= caixa lj =
+    ( valor
+    , Loja (caixa lj - valor) ((Produto nomeProduto valor) : estoque lj))
+    | otherwise = (0, lj)
+
+type Cliente = State Loja Bool
+
+vendeEspada :: Cliente
+vendeEspada = do
+  valorVendido <- vender "Espada" 10
+  return $ valorVendido > 0
+
+-- 1
+
+frisk :: Cliente
+frisk = do
+  valorEspada <- vender "Espada" 10
+  valorEscudo <- vender "Escudo" 5
+  return $ valorEspada > 0 && valorEscudo > 0
+
+-- 2
+loneWanderer :: Cliente
+loneWanderer = do
+  valorEspada <- vender "Espada" 10
+  if valorEspada == 0
+  then return False
+  else fmap isJust (comprar "Escudo")
+
+-- 4
+dragonborn :: Cliente
+dragonborn = do
+  valorVendido <- vender "Queijo" 3
+  if valorVendido > 0
+  then dragonborn
+  else return True
+
+-- 5
+geralt :: Cliente
+geralt = do
+  qtdVendida <- vendeLegal 0
+  if qtdVendida >= 6
+  then fmap isJust (comprar "Escudo")
+  else return False
+  where
+    vendeLegal count = do
+      valor <- vender "Espada" 15
+      if valor > 0 then
+        vendeLegal (count + 1)
+      else return count
+
 main :: IO ()
 main = do
-  let x = ""
+  let x = runState geralt (Loja 90 [Produto "Escudo" 15])
   print x
